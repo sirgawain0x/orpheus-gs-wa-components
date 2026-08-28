@@ -174,6 +174,12 @@ class gswaMixer {
 		} );
 	}
 	#removeChan( id ) {
+		if ( this.#pluginPreGain[ id ] ) {
+			try {
+				this.#pluginPreGain[ id ].output.disconnect();
+			} catch {}
+			delete this.#pluginPreGain[ id ];
+		}
 		const nodes = this.#chans[ id ];
 
 		nodes.pan.$disconnect();

@@ -1,19 +1,17 @@
 "use strict";
 
 class gswaPluginBridgeProcessor extends AudioWorkletProcessor {
-	#pluginId = "";
-	#ready = false;
-	#pendingL = null;
-	#pendingR = null;
+	#seq = 0;
+	#outputs = new Map();
 
 	constructor( options ) {
 		super();
-		this.#pluginId = options.processorOptions?.pluginId || "";
 		this.port.onmessage = e => {
-			if ( e.data.type === "output" ) {
-				this.#pendingL = e.data.outputL;
-				this.#pendingR = e.data.outputR;
-				this.#ready = true;
+			if ( e.data.type === "output" && e.data.seq !== undefined ) {
+				this.#outputs.set( e.data.seq, {
+					outputL: e.data.outputL,
+					outputR: e.data.outputR,
+				} );
 			}
 		};
 	}
@@ -30,22 +28,29 @@ class gswaPluginBridgeProcessor extends AudioWorkletProcessor {
 		const outL = output[ 0 ];
 		const outR = output[ 1 ] || output[ 0 ];
 		const n = outL.length;
+		const seq = this.#seq++;
 
 		this.port.postMessage( {
 			type: "process",
-			pluginId: this.#pluginId,
+			seq,
 			inputL: inL.slice(),
 			inputR: inR.slice(),
 			numSamples: n,
 		} );
 
-		if ( this.#ready && this.#pendingL?.length === n ) {
-			outL.set( this.#pendingL );
-			outR.set( this.#pendingR );
-			this.#ready = false;
+		const prev = this.#outputs.get( seq - 1 );
+
+		if ( prev?.outputL?.length === n ) {
+			outL.set( prev.outputL );
+			outR.set( prev.outputR );
+			this.#outputs.delete( seq - 1 );
 		} else {
 			outL.set( inL );
 			outR.set( inR );
+		}
+
+		if ( this.#outputs.size > 8 ) {
+			this.#outputs.delete( seq - 8 );
 		}
 		return true;
 	}

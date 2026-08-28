@@ -51,6 +51,7 @@ class gswaPluginHost {
 
 				this.#processor.port.postMessage( {
 					type: "output",
+					seq: e.data.seq,
 					outputL: result.outputL,
 					outputR: result.outputR,
 				} );
@@ -97,6 +98,39 @@ class gswaPluginHost {
 		if ( this.#pluginId && window.orpheusDesktop?.setPluginParameter ) {
 			return window.orpheusDesktop.setPluginParameter( this.#pluginId, paramId, value );
 		}
+	}
+
+	$sendMidiEvent( event ) {
+		if ( this.#pluginId && window.orpheusDesktop?.sendPluginMidi ) {
+			return window.orpheusDesktop.sendPluginMidi( this.#pluginId, event );
+		}
+	}
+
+	$sendNoteOn( note, velocity = 1, channel = 0 ) {
+		return this.$sendMidiEvent( {
+			type: 1,
+			channel,
+			note,
+			velocity: Math.round( velocity * 127 ),
+		} );
+	}
+
+	$sendNoteOff( note, velocity = 0, channel = 0 ) {
+		return this.$sendMidiEvent( {
+			type: 0,
+			channel,
+			note,
+			velocity: Math.round( velocity * 127 ),
+		} );
+	}
+
+	$sendController( controllerNumber, controllerValue, channel = 0 ) {
+		return this.$sendMidiEvent( {
+			type: 3,
+			channel,
+			controllerNumber,
+			controllerValue,
+		} );
 	}
 }
 

@@ -63,6 +63,7 @@ Developer/
 | `gswaMixer` | Multi-channel mixer with VU meters |
 | `gswaEffects` + `gswaFx*` | FX chain (delay, filter, reverb, waveshaper) |
 | `gswaPluginHost` | Desktop VST3 insert — IPC bridge via AudioWorklet |
+| `gswaPluginMIDIRouter` | Route Web MIDI / note events into loaded VST plugins |
 | `gswaPlugins` | Plugin chain controller (pairs with `DAWCoreControllerPlugins`) |
 | `gswaDrumrows` | Sample-based drum playback |
 | `gswaKeysScheduler` / `gswaDrumsScheduler` | Scheduler bridges |
