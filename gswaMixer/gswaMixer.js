@@ -14,6 +14,7 @@ class gswaMixer {
 	$audioDataL = new Float32Array( gswaMixer.fftSize / 2 );
 	$audioDataR = new Float32Array( gswaMixer.fftSize / 2 );
 	#chans = {};
+	#pluginPreGain = {};
 	#ctrlMixer = new DAWCoreControllerMixer( {
 		$addChannel: this.#addChan.bind( this ),
 		$removeChannel: this.#removeChan.bind( this ),
@@ -82,6 +83,30 @@ class gswaMixer {
 	$getChanOutput( id ) {
 		return this.#chans[ id ]?.toggle;
 	}
+	$setChannelPluginInsert( id, pluginNode ) {
+		const chan = this.#chans[ id ];
+
+		if ( !chan ) {
+			return;
+		}
+		chan.input.disconnect();
+		if ( this.#pluginPreGain[ id ] ) {
+			this.#pluginPreGain[ id ].output.disconnect();
+			delete this.#pluginPreGain[ id ];
+		}
+		if ( pluginNode ) {
+			const bridge = {
+				input: pluginNode.$getInput?.() || pluginNode,
+				output: pluginNode.$getOutput?.() || pluginNode,
+			};
+
+			chan.input.connect( bridge.input );
+			bridge.output.connect( chan.toggle );
+			this.#pluginPreGain[ id ] = bridge;
+		} else {
+			chan.input.connect( chan.toggle );
+		}
+	}
 	$fillAudioDataVu( chanId ) {
 		if ( chanId !== this.#vuAnalyserChan ) {
 			const nodes = this.#chans[ chanId ];
@@ -149,6 +174,12 @@ class gswaMixer {
 		} );
 	}
 	#removeChan( id ) {
+		if ( this.#pluginPreGain[ id ] ) {
+			try {
+				this.#pluginPreGain[ id ].output.disconnect();
+			} catch {}
+			delete this.#pluginPreGain[ id ];
+		}
 		const nodes = this.#chans[ id ];
 
 		nodes.pan.$disconnect();

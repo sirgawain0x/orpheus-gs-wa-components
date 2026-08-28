@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>Orpheus GSWA Smoke Test</title>
+<style>
+body { font-family: system-ui, sans-serif; margin: 2rem; }
+button { margin: .25rem; padding: .5rem 1rem; }
+#log { white-space: pre-wrap; font-family: monospace; margin-top: 1rem; }
+</style>
+</head>
+<body>
+<h1>Orpheus GSWA Smoke Test</h1>
+<button id="btn-mixer">Test mixer</button>
+<button id="btn-synth">Test synth</button>
+<button id="btn-wavetable">Test wavetable crossfade</button>
+<button id="btn-midi">Test MIDI parser</button>
+<pre id="log"></pre>
+
+<!-- orpheus-gs-utils -->
+<script src="../../orpheus-gs-utils/gs-utils.js"></script>
+<script src="../../orpheus-gs-utils/gs-utils-json.js"></script>
+<script src="../../orpheus-gs-utils/gs-utils-audio.js"></script>
+<script src="../../orpheus-gs-utils/gs-utils-fft.js"></script>
+<script src="../../orpheus-gs-utils/gs-utils-models.js"></script>
+
+<!-- orpheus-daw-core -->
+<script src="../../orpheus-daw-core/DAWCoreControllerBase.js"></script>
+<script src="../../orpheus-daw-core/DAWCoreControllerMixer.js"></script>
+<script src="../../orpheus-daw-core/DAWCoreControllerEffects.js"></script>
+<script src="../../orpheus-daw-core/DAWCoreControllerDrumrows.js"></script>
+<script src="../../orpheus-daw-core/DAWCoreUndoStack.js"></script>
+<script src="../../orpheus-daw-core/DAWCorePersistence.js"></script>
+
+<!-- gswa modules -->
+<script src="../gswaStereoPanner/gswaStereoPanner.js"></script>
+<script src="../gswaMixer/gswaMixer.js"></script>
+<script src="../gswaFxDelay/gswaFxDelay.js"></script>
+<script src="../gswaFxFilter/gswaFxFilter.js"></script>
+<script src="../gswaFxReverb/gswaFxReverb.js"></script>
+<script src="../gswaFxWaveShaper/gswaFxWaveShaper.js"></script>
+<script src="../gswaReverbIR/gswaReverbIR.js"></script>
+<script src="../gswaEffects/gswaEffects.js"></script>
+<script src="../gswaPeriodicWaves/gswaPeriodicWaves.js"></script>
+<script src="../gswaCrossfade/gswaCrossfade.js"></script>
+<script src="../gswaOscillator/gswaOscillator.js"></script>
+<script src="../gswaEnvelope/gswaEnvelope.js"></script>
+<script src="../gswaLFO/gswaLFO.js"></script>
+<script src="../gswaNoise/gswaNoise.js"></script>
+<script src="../gswaSynth/gswaSynth.js"></script>
+<script src="../gswaMIDIParser/gswaMIDIParser.js"></script>
+<script src="../gswaMIDIParser/gswaMIDIToKeys.js"></script>
+
+<script>
+const logEl = document.getElementById( "log" );
+const log = ( ...args ) => {
+	console.log( ...args );
+	logEl.textContent += args.join( " " ) + "\n";
+};
+
+const ctx = new AudioContext();
+
+document.getElementById( "btn-mixer" ).onclick = async () => {
+	await ctx.resume();
+	const mixer = new gswaMixer();
+
+	mixer.$setContext( ctx );
+	mixer.$change( {
+		channels: {
+			1: { order: 0, name: "test", dest: "main", gain: .5, pan: 0, toggle: true },
+		},
+	} );
+	mixer.$connect( ctx.destination );
+	log( "mixer OK — channels:", Object.keys( mixer.$change ? "ready" : "" ), "main connected" );
+};
+
+document.getElementById( "btn-synth" ).onclick = async () => {
+	await ctx.resume();
+	const synth = new gswaSynth();
+
+	synth.$setContext( ctx );
+	synth.$output.connect( ctx.destination );
+	const id = synth.$startKey( [ [ "0", { key: 57, gain: .5, duration: .25, when: 0 } ] ], ctx.currentTime + .05, 0, .25 );
+
+	log( "synth OK — started key", id );
+	setTimeout( () => synth.$stopKey( id ), 400 );
+};
+
+document.getElementById( "btn-wavetable" ).onclick = async () => {
+	await ctx.resume();
+	gswaCrossfade.$PATH = "../gswaCrossfade/gswaCrossfadeProc.js";
+	await gswaCrossfade.$loadModule( ctx );
+	const wtName = GSUformatWavetableName( 1, 1 );
+	const curveA = GSUgetModel( "wavetable" ).waves[ 0 ].curve;
+	const curveB = GSUdeepCopy( curveA );
+
+	curveB[ 1 ].y = -.5;
+	gswaPeriodicWaves.$addWavetable( wtName, {
+		0: { index: 0, curve: curveA },
+		1: { index: 1, curve: curveB },
+	} );
+	const osc = new gswaOscillator( ctx );
+
+	osc.$type = wtName;
+	osc.$connect( ctx.destination );
+	osc.$start( ctx.currentTime + .05, 220 );
+	log( "wavetable crossfade OK — oscillator started at 220 Hz" );
+	setTimeout( () => {
+		osc.$setWavetableAtTime( 1, ctx.currentTime );
+		log( "wavetable index -> 1" );
+	}, 300 );
+	setTimeout( () => osc.$stop( ctx.currentTime + .05 ), 800 );
+};
+
+document.getElementById( "btn-midi" ).onclick = () => {
+	fetch( "../gswaMIDIParser/sample.mid" )
+		.then( res => res.arrayBuffer() )
+		.then( arr => {
+			const midi = gswaMIDIParser.$parse( new Uint8Array( arr ) );
+			const keys = gswaMIDIToKeys.$convert( midi );
+
+			log( "midi OK — tracks:", midi.tracks.length, "patterns:", Object.keys( keys.patterns ).length );
+		} );
+};
+
+log( "Ready. Click a test button." );
+</script>
+</body>
+</html>
