@@ -82,6 +82,8 @@ Developer/
 
 Serve the repo root with any static file server, then open e.g. `http://localhost:8080/demo/`.
 
+**Vercel:** [orpheus-gs-wa-components.vercel.app](https://orpheus-gs-wa-components.vercel.app/) — root landing page; demos at `/demo/`. Build clones `orpheus-gs-utils` into `vendor/`; `orpheus-daw-core` is vendored in-repo.
+
 ## Desktop plugin hosting
 
 Native VST3/AU/AAX plugins require **[orpheus-desktop](../orpheus-desktop)** (Electron). Browser modules here stay unchanged; `gswaPluginHost` bridges audio to the main-process VST3 host via IPC.
