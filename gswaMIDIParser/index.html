@@ -6,21 +6,22 @@
 <title>gswaMIDIParser</title>
 </head>
 <body>
-<script src="../../gs-utils/gs-utils.js"></script>
+<script src="../../orpheus-gs-utils/gs-utils.js"></script>
+<script src="../../orpheus-gs-utils/gs-utils-json.js"></script>
 <script src="gswaMIDIParser.js"></script>
 <script src="gswaMIDIToKeys.js"></script>
 <script>
 
-fetch( "Cymatics-DiamondsMelody40-168bpmBMin.mid" )
+fetch( "sample.mid" )
 	.then( res => res.arrayBuffer() )
 	.then( arr => {
 		const midi = gswaMIDIParser.$parse( new Uint8Array( arr ) );
 
-		console.log( midi );
+		console.log( "midi", midi );
 
 		const keys = gswaMIDIToKeys.$convert( midi );
 
-		console.log( keys );
+		console.log( "keys", keys );
 	} );
 
 </script>

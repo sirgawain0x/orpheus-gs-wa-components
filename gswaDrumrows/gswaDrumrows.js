@@ -48,8 +48,7 @@ class gswaDrumrows {
 	}
 	$liveDrumStop( rowId ) {
 		this.#startedDrums.forEach( ( nodes, id ) => {
-			// if ( nodes.live && nodes.rowId === rowId ) {
-			if ( nodes.rowId === rowId ) {
+			if ( nodes.live && nodes.rowId === rowId ) {
 				this.$stopDrum( id, "-f" );
 			}
 		} );

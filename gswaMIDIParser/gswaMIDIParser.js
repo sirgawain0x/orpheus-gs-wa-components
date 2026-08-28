@@ -93,12 +93,16 @@ class gswaMIDIParser {
 					gswaMIDIParser.#rdInt1(),
 				];
 				break;
-			case 0xd: // Program change
+			case 0xc: // Program change
 			case 0xd: // Channel aftertouch
 				event.data = gswaMIDIParser.#rdInt1();
 				break;
-			case 0xf: // Exclusive events
-				console.error( "Unsupported event type '0xF'" );
+			case 0xf: // System exclusive / real-time
+				if ( ( statusByte & 0xf ) === 0 ) {
+					const len = gswaMIDIParser.#rdIntN();
+
+					gswaMIDIParser.#ptr += len;
+				}
 				break;
 		}
 	}
@@ -110,7 +114,7 @@ class gswaMIDIParser {
 		ev.metaType = metaType;
 		switch ( ev.metaType ) {
 			default:
-				console.error( "gswaMIDIParser: unsupported meta event", ev );
+				gswaMIDIParser.#ptr += metaEventLength;
 				return;
 			case 0x2f: // End of track
 				return false;
